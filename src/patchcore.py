@@ -55,7 +55,10 @@ class PatchCoreClassifier():
     def score(self,input_tensor,k=10,sigma=4):
         input_tensor = self.preprocessing(input_tensor)
         model_output = self.feature_extractor(input_tensor)
-        return _scoring_function(model_output,k,self.memory_bank)
+        image_scores,pixel_scores = _scoring_function(model_output,k,self.memory_bank)
+        pixel_scores = tf.image.resize(pixel_scores[:,:,:,tf.newaxis],input_tensor.shape[-3:-1])
+        pixel_scores = tf.reshape(gaussian_filter(pixel_scores,sigma),[*pixel_scores.shape[:-1],1])
+        return image_scores,pixel_scores
 
 @tf.function
 def _scoring_function(model_output,k,mb):
@@ -79,6 +82,4 @@ def _scoring_function(model_output,k,mb):
         
     #reshape & resize & smooth
     pixel_scores = tf.reshape(pixel_scores,model_output.shape[:-1])
-    pixel_scores = tf.image.resize(pixel_scores[:,:,:,tf.newaxis],input_tensor.shape[-3:-1])
-    pixel_scores = tf.reshape(gaussian_filter(pixel_scores,sigma),[*pixel_scores.shape[:-1],1])
     return image_scores,pixel_scores

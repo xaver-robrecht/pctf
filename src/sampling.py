@@ -17,8 +17,8 @@ class RandomProjection():
         return tf.transpose(tf.linalg.matmul(self.T,x,transpose_b=True))
 
 def subsample(mb,n_sample,idx0=None):
-    """Greedy selects n_samples of a given set mb by recursively selecting the elemet
-     that is furthest apart from the already selected. starts with element at set[idx0,:].
+    """Greedily selects n_samples of a given set mb by recursively selecting the elemet
+     that is furthest apart from the elements already selected. starts with element at set[idx0,:].
      Returns the sampled indices"""
     if idx0 is None:
         idx0 =tf.random.uniform((),minval=0,maxval=n_sample,dtype=tf.int64)

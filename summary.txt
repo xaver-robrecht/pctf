@@ -1,0 +1,2 @@
+layer 	 p 	 dataset 	 AUROC
+[2, 3] 	 2 	 /home/xaver/Downloads/mvtecad/metal_nut	 0.972

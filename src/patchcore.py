@@ -7,7 +7,7 @@ def gaussian_filter(image_tensor,sigma,n=4):
     """Applies a gaussian filter with standard deviation sigma to all images in image_tensor.
 
     Args:
-        image_tensor (array-like,float): 4D Tensor of shape (Batchsize,height,width,channels)
+        image_tensor (array-like,float): 4D Tensor of shape (batchsize,height,width,channels)
         sigma (float): standard deviation of gaussian filter kernel
         n (int, optional): Number of standdard deviation included in the Kernel. Defaults to 4.
 
@@ -55,30 +55,30 @@ class PatchCoreClassifier():
     def score(self,input_tensor,k=10,sigma=4):
         input_tensor = self.preprocessing(input_tensor)
         model_output = self.feature_extractor(input_tensor)
+        return _scoring_function(model_output,k,self.memory_bank)
 
-        @tf.function
-        def scoring_function(model_output,k,mb):
-            input_features = tf.reshape(model_output, (-1,model_output.shape[-1]))
-            dists_to_mb = tf.sqrt(squared_distances(fv=input_features,mb=mb))
+@tf.function
+def _scoring_function(model_output,k,mb):
+    input_features = tf.reshape(model_output, (-1,model_output.shape[-1]))
+    dists_to_mb = tf.sqrt(squared_distances(fv=input_features,mb=mb))
 
-            #pixelscores = distance of each feature vector to memory bank
-            pixel_scores = tf.reshape(dists_to_mb,(model_output.shape[0],-1))
-            
-            #softmax over klosest elements of most anomal pixel
-            idx_max = tf.math.argmax(pixel_scores,axis=-1)
-            input_features = tf.reshape(model_output, (model_output.shape[0],-1,model_output.shape[-1]))
-            input_features = tf.gather(input_features, idx_max, axis=1, batch_dims=1)
-            topk_dists =tf.sqrt(k_squared_distances(
-                        fv=input_features,
-                        mb=mb,k=k))
-            topk_dists = tf.reshape(topk_dists,(model_output.shape[0],k))
-            image_scores = (
-                1-tf.gather(tf.nn.softmax(topk_dists), indices=0, axis=-1)
-                )*tf.gather(topk_dists, indices=0, axis=-1)
-                
-            #reshape & resize & smooth
-            pixel_scores = tf.reshape(pixel_scores,model_output.shape[:-1])
-            pixel_scores = tf.image.resize(pixel_scores[:,:,:,tf.newaxis],input_tensor.shape[-3:-1])
-            pixel_scores = tf.reshape(gaussian_filter(pixel_scores,sigma),[*pixel_scores.shape[:-1],1])
-            return image_scores,pixel_scores
-        return scoring_function(model_output,k,self.memory_bank)
+    #pixelscores = distance of each feature vector to memory bank
+    pixel_scores = tf.reshape(dists_to_mb,(model_output.shape[0],-1))
+    
+    #softmax over k closest elements of most anomal pixel
+    idx_max = tf.math.argmax(pixel_scores,axis=-1)
+    input_features = tf.reshape(model_output, (model_output.shape[0],-1,model_output.shape[-1]))
+    input_features = tf.gather(input_features, idx_max, axis=1, batch_dims=1)
+    topk_dists = tf.sqrt(k_squared_distances(
+                fv=input_features,
+                mb=mb,k=k))
+    topk_dists = tf.reshape(topk_dists,(model_output.shape[0],k))
+    image_scores = (
+        1-tf.gather(tf.nn.softmax(topk_dists), indices=0, axis=-1)
+        )*tf.gather(topk_dists, indices=0, axis=-1)
+        
+    #reshape & resize & smooth
+    pixel_scores = tf.reshape(pixel_scores,model_output.shape[:-1])
+    pixel_scores = tf.image.resize(pixel_scores[:,:,:,tf.newaxis],input_tensor.shape[-3:-1])
+    pixel_scores = tf.reshape(gaussian_filter(pixel_scores,sigma),[*pixel_scores.shape[:-1],1])
+    return image_scores,pixel_scores

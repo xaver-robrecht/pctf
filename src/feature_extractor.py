@@ -6,8 +6,8 @@ class ResizeLayer(tf.keras.Layer):
         self.upsampsize=upsampsize
         self.trainable=False
     def call(self, x):
-        x = tf.concat([tf.image.resize(elem, method="bilinear", size=self.upsampsize) for elem in x],axis=-1)
-        return x
+        y = tf.concat([tf.image.resize(elem, method="bilinear", size=self.upsampsize) for elem in x],axis=-1)
+        return y
 
 def create_feature_extractor(blocks_to_extract, model, aggregation_size, pattern="block"):
     layer_names = []
